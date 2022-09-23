@@ -15,7 +15,10 @@ TL_MS = 500
 N = 5
 Dj = [+1, 0, -1, 0]
 Dk = [0, +1, 0, -1]
+N_AGENT = 6
 
+COLORED = 1
+PERFECT_COLOERED = 2
 
 # ゲームサーバのAPIを叩く
 def call_api(x: str) -> dict:
@@ -160,6 +163,7 @@ class State:
                 continue
             self.paint(idx)
 
+ME = 0
 
 class Bot:
     def solve(self):
@@ -177,31 +181,35 @@ class Bot:
             print('score = {} {} {} {} {} {}'.format(move['score'][0], move['score'][1], move['score'][2], move['score'][3], move['score'][4], move['score'][5]), file=sys.stderr, flush=True)
 
             # 4方向で移動した場合を全部シミュレーションする
-            best_colored = -1
-            best_perfect_coloerd = -1
+            best_result = (-1, -1, N*N*6, N*N*6)
             best_d = []
             for d in range(4):
                 m = State(move['field'], move['agent'])
                 m.move([d, -1, -1, -1, -1, -1])
                 # 自身のエージェントで塗られているマス数をカウントする
-                colored = 0
-                perfect_coloerd = 0
+                colored = [0] * N_AGENT
+                perfect_coloerd = [0] * N_AGENT
                 for i in range(6):
                     for j in range(N):
                         for k in range(N):
-                            if m.field[i][j][k][0] == 0:
-                                colored += 1
-                                if m.field[i][j][k][1] == 2:
-                                    perfect_coloerd += 1
+                            if m.field[i][j][k][0] == -1:
+                                # 塗られていないマス
+                                continue
+                            else:
+                                [player, state] = m.field[i][j][k]
+                                assert 0<= player < 6, f"player: {player}"
+                                colored[player] += 1
+                                if state == PERFECT_COLOERED:
+                                    perfect_coloerd[player] += 1
+                result = (colored[ME],perfect_coloerd[ME], -sum(colored[ME+1:]),  -sum(perfect_coloerd[ME+1:]))
                 # 最も多くのマスを自身のエージェントで塗れる移動方向のリストを保持する
-                if (colored, perfect_coloerd) > (best_colored, best_perfect_coloerd):
-                    best_colored = colored
-                    best_perfect_coloerd = perfect_coloerd
+                if result > best_result:
+                    best_result = result
                     best_d = [d]
-                elif (colored, perfect_coloerd) == (best_colored, best_perfect_coloerd):
+                elif result == best_result:
                     best_d.append(d)
             # 最も多くのマスを自身のエージェントで塗れる移動方向のリストからランダムで方向を決める
-            next_d = random.choice(best_d)
+            next_d = best_d[0]
 
 
 if __name__ == "__main__":
