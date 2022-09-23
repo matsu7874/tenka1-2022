@@ -6,6 +6,7 @@ import time
 import urllib.request
 import urllib.error
 from copy import deepcopy
+import collections
 
 # ゲームサーバのアドレス / トークン
 GAME_SERVER = os.getenv('GAME_SERVER', 'https://2022contest.gbc.tenka1.klab.jp')
@@ -171,6 +172,7 @@ def get_rank(colored):
 class Bot:
     def solve(self):
         game_id = get_game_id()
+        history = collections.deque()
         next_d = random.randint(0, 3)
         while True:
             # 移動APIを呼ぶ
@@ -183,12 +185,18 @@ class Bot:
             print('turn = {}'.format(move['turn']), file=sys.stderr, flush=True)
             print('score = {} {} {} {} {} {}'.format(move['score'][0], move['score'][1], move['score'][2], move['score'][3], move['score'][4], move['score'][5]), file=sys.stderr, flush=True)
 
+
+            history.append(next_d)
+            if len(history) > 6:
+                history.popleft()
+
             # 4方向で移動した場合を全部シミュレーションする
             best_result = (-N_AGENT, -1, -1, -N*N*6, -N*N*6, -N*N*6, -N*N*6, -N*N*6)
             best_d = []
             for d in range(4):
                 m = State(move['field'], move['agent'])
-                m.move([d, -1, -1, -1, -1, -1])
+                # 他のエージェントの動きは決め打ち
+                m.move([d, 0,0,0,0,0])
                 # 自身のエージェントで塗られているマス数をカウントする
                 colored = [0] * N_AGENT
                 perfect_coloerd = [0] * N_AGENT
@@ -215,7 +223,10 @@ class Bot:
                     best_d = [d]
                 elif result == best_result:
                     best_d.append(d)
-            next_d = best_d[0]
+            if len(history) >= 4 and best_d[0] == history[1] == history[3] and history[0] == history[2]:
+                next_d = random.randint(0, 3)
+            else:
+                next_d = best_d[0]
 
 
 if __name__ == "__main__":
