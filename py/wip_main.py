@@ -165,6 +165,9 @@ class State:
 
 ME = 0
 
+def get_rank(colored):
+    ranks = sorted([(colored[i],i) for i in range(N_AGENT)], reverse=True)
+    return ranks.index(((colored[ME],ME))), ranks
 class Bot:
     def solve(self):
         game_id = get_game_id()
@@ -181,7 +184,7 @@ class Bot:
             print('score = {} {} {} {} {} {}'.format(move['score'][0], move['score'][1], move['score'][2], move['score'][3], move['score'][4], move['score'][5]), file=sys.stderr, flush=True)
 
             # 4方向で移動した場合を全部シミュレーションする
-            best_result = (-1, -1, N*N*6, N*N*6)
+            best_result = (-N_AGENT, -1, -1, -N*N*6, -N*N*6, -N*N*6, -N*N*6, -N*N*6)
             best_d = []
             for d in range(4):
                 m = State(move['field'], move['agent'])
@@ -201,14 +204,17 @@ class Bot:
                                 colored[player] += 1
                                 if state == PERFECT_COLOERED:
                                     perfect_coloerd[player] += 1
-                result = (colored[ME],perfect_coloerd[ME], -sum(colored[ME+1:]),  -sum(perfect_coloerd[ME+1:]))
-                # 最も多くのマスを自身のエージェントで塗れる移動方向のリストを保持する
+                my_rank, ranks = get_rank(colored)
+                if my_rank == 0:
+                    result = (-my_rank, colored[ME],perfect_coloerd[ME], -ranks[my_rank+1][0], -max(colored[ME+1:]), -sum(colored[ME+1:]),  -sum(perfect_coloerd[ME+1:]))
+                else:
+                    result = (-my_rank, colored[ME],perfect_coloerd[ME], -ranks[my_rank-1][0], -max(colored[ME+1:]), -sum(colored[ME+1:]),  -sum(perfect_coloerd[ME+1:]))
+
                 if result > best_result:
                     best_result = result
                     best_d = [d]
                 elif result == best_result:
                     best_d.append(d)
-            # 最も多くのマスを自身のエージェントで塗れる移動方向のリストからランダムで方向を決める
             next_d = best_d[0]
 
 
