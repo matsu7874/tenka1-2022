@@ -11,6 +11,7 @@ from copy import deepcopy
 GAME_SERVER = os.getenv('GAME_SERVER', 'https://2022contest.gbc.tenka1.klab.jp')
 TOKEN = os.getenv('TOKEN', 'e61f03da161605f896fe3d364a1bd251')
 
+TL_MS = 500
 N = 5
 Dj = [+1, 0, -1, 0]
 Dk = [0, +1, 0, -1]
@@ -174,24 +175,30 @@ class Bot:
                 break
             print('turn = {}'.format(move['turn']), file=sys.stderr, flush=True)
             print('score = {} {} {} {} {} {}'.format(move['score'][0], move['score'][1], move['score'][2], move['score'][3], move['score'][4], move['score'][5]), file=sys.stderr, flush=True)
+
             # 4方向で移動した場合を全部シミュレーションする
-            best_c = -1
+            best_colored = -1
+            best_perfect_coloerd = -1
             best_d = []
             for d in range(4):
                 m = State(move['field'], move['agent'])
                 m.move([d, -1, -1, -1, -1, -1])
                 # 自身のエージェントで塗られているマス数をカウントする
-                c = 0
+                colored = 0
+                perfect_coloerd = 0
                 for i in range(6):
                     for j in range(N):
                         for k in range(N):
                             if m.field[i][j][k][0] == 0:
-                                c += 1
+                                colored += 1
+                                if m.field[i][j][k][1] == 2:
+                                    perfect_coloerd += 1
                 # 最も多くのマスを自身のエージェントで塗れる移動方向のリストを保持する
-                if c > best_c:
-                    best_c = c
+                if (colored, perfect_coloerd) > (best_colored, best_perfect_coloerd):
+                    best_colored = colored
+                    best_perfect_coloerd = perfect_coloerd
                     best_d = [d]
-                elif c == best_c:
+                elif (colored, perfect_coloerd) == (best_colored, best_perfect_coloerd):
                     best_d.append(d)
             # 最も多くのマスを自身のエージェントで塗れる移動方向のリストからランダムで方向を決める
             next_d = random.choice(best_d)
